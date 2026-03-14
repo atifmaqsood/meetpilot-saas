@@ -25,6 +25,7 @@ export const signup = createAsyncThunk('auth/signup', async (userData, { rejectW
 const initialState = {
   user: JSON.parse(localStorage.getItem('meetpilot_user')) || null,
   token: localStorage.getItem('meetpilot_token') || null,
+  isAuthenticated: !!localStorage.getItem('meetpilot_token'),
   loading: false,
   error: null,
 };
@@ -36,8 +37,13 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
+      state.isAuthenticated = false;
       localStorage.removeItem('meetpilot_token');
       localStorage.removeItem('meetpilot_user');
+    },
+    updateUser: (state, action) => {
+      state.user = { ...state.user, ...action.payload };
+      localStorage.setItem('meetpilot_user', JSON.stringify(state.user));
     },
   },
   extraReducers: (builder) => {
@@ -47,6 +53,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.isAuthenticated = true;
       })
       .addCase(login.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(signup.pending, (state) => { state.loading = true; state.error = null; })
@@ -54,10 +61,11 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.isAuthenticated = true;
       })
       .addCase(signup.rejected, (state, action) => { state.loading = false; state.error = action.payload; });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, updateUser } = authSlice.actions;
 export default authSlice.reducer;

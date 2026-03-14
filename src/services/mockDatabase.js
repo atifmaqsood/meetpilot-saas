@@ -1,8 +1,3 @@
-/**
- * Mock Database Service
- * Simulates a backend using localStorage with atomic operations.
- */
-
 const DB_KEY = 'meetpilot_db';
 
 const initialSchema = {
@@ -11,6 +6,7 @@ const initialSchema = {
   availability: {}, // userId -> availability object
   bookings: [],
   notifications: [],
+  emailLogs: [], 
 };
 
 class MockDatabaseService {
@@ -19,7 +15,8 @@ class MockDatabaseService {
   }
 
   init() {
-    if (!localStorage.getItem(DB_KEY)) {
+    const existing = localStorage.getItem(DB_KEY);
+    if (!existing) {
       localStorage.setItem(DB_KEY, JSON.stringify(initialSchema));
     }
   }
@@ -33,7 +30,6 @@ class MockDatabaseService {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
   }
 
-  // Generic CRUD
   getAll(collection) {
     const db = this.getDB();
     return db[collection] || [];
@@ -46,26 +42,35 @@ class MockDatabaseService {
 
   create(collection, item) {
     const db = this.getDB();
-    const newItem = { ...item, id: Math.random().toString(36).substr(2, 9), createdAt: new Date().toISOString() };
+    const newItem = { 
+      ...item, 
+      id: Math.random().toString(36).substr(2, 9), 
+      createdAt: new Date().toISOString() 
+    };
     db[collection] = [...(db[collection] || []), newItem];
     
-    // Seed default data for new users
     if (collection === 'users') {
+      db.availability = db.availability || {};
       db.availability[newItem.id] = {
         workingDays: [1, 2, 3, 4, 5],
         workingHours: { start: '09:00', end: '17:00' },
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         breaks: [],
+        overrides: {},
       };
       
       const defaultMeeting = {
         id: Math.random().toString(36).substr(2, 9),
         userId: newItem.id,
-        title: '15 Minute Meeting',
-        duration: 15,
-        description: 'Quick introductory call.',
+        title: 'Introductory Call',
+        duration: 30,
+        description: 'A quick discovery call to discuss potential collaboration.',
         location: 'Google Meet',
-        slug: '15-min',
+        slug: 'intro-call',
+        bufferBefore: 10,
+        bufferAfter: 10,
+        minNotice: 4,
+        dailyLimit: 5,
         createdAt: new Date().toISOString()
       };
       db.meetingTypes.push(defaultMeeting);
@@ -77,33 +82,36 @@ class MockDatabaseService {
 
   update(collection, id, updates) {
     const db = this.getDB();
-    db[collection] = db[collection].map(item => 
+    db[collection] = (db[collection] || []).map(item => 
       item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
     );
     this.saveDB(db);
-    return db[collection].find(item => item.id === id);
+    return (db[collection] || []).find(item => item.id === id);
   }
 
   delete(collection, id) {
     const db = this.getDB();
-    db[collection] = db[collection].filter(item => item.id !== id);
+    db[collection] = (db[collection] || []).filter(item => item.id !== id);
     this.saveDB(db);
   }
 
-  // Auth Specific
   getUserByEmail(email) {
     const db = this.getDB();
     return db.users.find(u => u.email === email);
   }
 
-  // Availability Specific
+  updateProfile(userId, updates) {
+    return this.update('users', userId, updates);
+  }
+
   getAvailability(userId) {
     const db = this.getDB();
     return db.availability[userId] || {
-      workingDays: [1, 2, 3, 4, 5], // Mon-Fri
+      workingDays: [1, 2, 3, 4, 5],
       workingHours: { start: '09:00', end: '17:00' },
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       breaks: [],
+      overrides: {},
     };
   }
 
@@ -114,7 +122,14 @@ class MockDatabaseService {
     return availability;
   }
 
-  // Filtered Bookings
+  logEmail(emailData) {
+    return this.create('emailLogs', {
+      ...emailData,
+      sentAt: new Date().toISOString(),
+      status: 'sent'
+    });
+  }
+
   getBookingsByUserId(userId) {
     const db = this.getDB();
     return db.bookings.filter(b => b.hostId === userId);
