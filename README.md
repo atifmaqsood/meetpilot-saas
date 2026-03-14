@@ -90,6 +90,6 @@ MeetPilot isn't just a tool; it's an experience.
 ---
 
 <div align="center">
-  <p>Built with ⚡ by the MeetPilot Team</p>
+  <p>Built with ⚡ by the Atif Maqsood</p>
   <p><i>Scheduling Mastery. Delivered.</i></p>
 </div>
