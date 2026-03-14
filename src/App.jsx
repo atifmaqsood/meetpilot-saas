@@ -21,7 +21,7 @@ import Settings from './pages/settings/Settings';
 // Public Pages
 import PublicBooking from './pages/publicBooking/PublicBooking';
 
-// Components
+// Componentss
 import { useToast } from './context/UIContext';
 
 // Protected Route Component
